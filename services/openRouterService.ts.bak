@@ -1,0 +1,211 @@
+import { OpenRouterResponse, Message } from '../types';
+
+interface FetchOptions {
+  model: string;
+  query: string;
+  temperature?: number;
+}
+
+const SYSTEM_PROMPT = `You are a research assistant specializing in claim extraction and source verification.
+
+CRITICAL INSTRUCTIONS:
+1. Output ONLY valid JSON - no markdown, no code blocks, no explanations.
+2. Follow the exact structure provided in the user prompt.
+3. Ensure all URLs are valid, accessible, and point to the specific article, not a homepage.
+4. Cross-validate information across multiple sources when available.
+5. Use current date for extraction_date field.
+6. SOURCE QUALITY CONTROL:
+   - STRICTLY EXCLUDE: Wikipedia, Fandom, Wikia, Quora, Reddit.
+   - STRICTLY EXCLUDE: Personal blogs (Wordpress, Blogspot, Medium personal accounts).
+   - PRIORITIZE: Reputable news outlets, academic journals, official institution reports, and expert publications.`;
+
+const buildUserPrompt = (query: string): string => {
+  const today = new Date().toISOString().split('T')[0];
+
+  return `Topic: ${query}
+
+## OBJECTIVE
+Extract key claims with verified and HIGH-QUALITY sources to support the creation of an Executive Summary, Analytical Framework, and Market Positioning.
+
+## CLAIM & SOURCE CRITERIA
+- Specific and measurable.
+- Highly relevant to the main topic.
+- Current information (priority < 12 months).
+- **FORBIDDEN SOURCES (Blacklist)**:
+  - Wikipedia, Fandom, Wikia, all Wikis.
+  - Personal blogs (wordpress.com, blogspot.com, tumblr, personal Medium).
+  - Discussion forums (Reddit, Quora, Kaskus, StackOverflow).
+  - Social Media (Twitter/X, Facebook, Instagram, LinkedIn posts).
+- **PREFERRED SOURCES (Whitelist)**:
+  - Reputable News Portals (International/National Tier 1).
+  - Academic Journals / Google Scholar.
+  - Official Government / Institution Websites (.gov, .edu, .org).
+  - Official Industry Reports / Corporate Whitepapers.
+
+## CATEGORIZATION
+- **Empirical**: Data, statistics, research findings.
+- **Historical**: Historical context, evolution, timeline.
+- **Theoretical**: Conceptual frameworks, models, definitions.
+- **Application**: Implementation, case studies, practical use.
+- **Trend**: Recent developments, future predictions.
+
+## OUTPUT JSON STRUCTURE
+{
+  "metadata": {
+    "topic_summary": "Summary in 3-4 sentences (in Indonesian)",
+    "total_claims": 0,
+    "extraction_date": "${today}"
+  },
+  "claims": [
+    {
+      "id": "claim_001",
+      "claim": "Specific claim statement (in Indonesian)",
+      "context": "Brief context (in Indonesian)",
+      "sources": [
+        {
+          "url": "https://...",
+          "title": "Source Title",
+          "date": "YYYY-MM",
+          "credibility": "high"
+        }
+      ],
+      "category": "Empirical|Historical|Theoretical|Application|Trend",
+      "keywords": ["keyword1", "keyword2", "keyword3"]
+    }
+  ]
+}
+
+## INSTRUCTIONS
+1. Conduct a deep search.
+2. STRICT FILTERING: If the only source is Wikipedia or a Blog, FIND AN ALTERNATIVE authoritative source or discard the claim.
+3. Extract citations with specific URLs (deep links).
+4. Cross-validate between sources to ensure accuracy.
+5. **LANGUAGE REQUIREMENT**: 
+   - Write the content of 'claim', 'context', and 'topic_summary' in **INDONESIAN** (Bahasa Indonesia).
+   - **IMPORTANT**: Keep technical terms, proper nouns, or specific industry jargon in **ENGLISH** if it sounds more natural (e.g., use "Market Positioning" instead of "Pemosisian Pasar", "Framework" instead of "Kerangka Kerja").
+6. Output ONLY raw JSON without markdown formatting (\`\`\`json).`;
+};
+
+export const fetchOpenRouterResponse = async ({
+  model,
+  query,
+  temperature = 0.2
+}: FetchOptions): Promise<OpenRouterResponse> => {
+  // Validation
+  if (!model?.trim()) {
+    throw new Error("Model is required");
+  }
+
+  if (!query?.trim()) {
+    throw new Error("Query is required");
+  }
+
+  const messages: Message[] = [
+    {
+      role: "system",
+      content: SYSTEM_PROMPT
+    },
+    {
+      role: "user",
+      content: buildUserPrompt(query)
+    }
+  ];
+
+  const body = {
+    model,
+    messages,
+    temperature,
+  };
+
+  try {
+    const response = await fetch("http://localhost:3001/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    // Handle HTTP errors
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+      try {
+        const errData = await response.json();
+        errorMessage = errData?.error?.message || errorMessage;
+      } catch {
+        // If JSON parsing fails, use default error message
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data: OpenRouterResponse = await response.json();
+
+    // Validate response structure
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      throw new Error("Invalid response structure from OpenRouter");
+    }
+
+    if (!data.choices[0].message?.content) {
+      throw new Error("No content in response from OpenRouter");
+    }
+
+    return data;
+
+  } catch (error) {
+    // Enhanced error handling
+    if (error instanceof Error) {
+      // Network errors
+      if (error.message.includes('fetch')) {
+        throw new Error("Network error: Unable to connect to OpenRouter. Please check your internet connection.");
+      }
+
+      // API errors
+      if (error.message.includes('401')) {
+        throw new Error("Authentication failed: Invalid API Key");
+      }
+
+      if (error.message.includes('429')) {
+        throw new Error("Rate limit exceeded: Please try again later");
+      }
+
+      if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+        throw new Error("OpenRouter service error: Please try again later");
+      }
+
+      // Re-throw with original message if not matched above
+      throw error;
+    }
+
+    // Unknown error type
+    throw new Error("An unexpected error occurred while fetching data");
+  }
+};
+
+// Helper function to parse JSON from response content
+export const parseClaimsFromResponse = (response: OpenRouterResponse): any => {
+  try {
+    const content = response.choices[0].message.content;
+
+    // Remove potential markdown formatting
+    const cleanedContent = content
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    const parsed = JSON.parse(cleanedContent);
+
+    // Validate parsed structure
+    if (!parsed.metadata || !parsed.claims || !Array.isArray(parsed.claims)) {
+      throw new Error("Invalid JSON structure: Missing required fields");
+    }
+
+    return parsed;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`Failed to parse JSON response: ${error.message}`);
+    }
+    throw error;
+  }
+};
