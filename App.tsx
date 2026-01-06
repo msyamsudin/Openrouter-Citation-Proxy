@@ -3,7 +3,6 @@ import { Radar, CheckCircle2, Settings, AlertCircle, Loader2 } from 'lucide-reac
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { ResultView } from './components/ResultView';
 import { fetchOpenRouterResponse, parseClaimsFromResponse } from './services/openRouterService';
-import { processResponse } from './utils/extractor';
 import { AVAILABLE_MODELS, AppState } from './types';
 import { API_ENDPOINTS } from './utils/api';
 
@@ -130,10 +129,12 @@ export default function App() {
         setLogs(prev => [...prev, "Warning: No claims found in the response."]);
       }
 
-      // 4. Normalize citations using the extractor
-      const processedData = processResponse(rawData, content);
+      // 4. Create simple result object
+      const processedData = {
+        content: content
+      };
 
-      setLogs(prev => [...prev, "Data berhasil diproses dan divalidasi."]);
+      setLogs(prev => [...prev, "Data berhasil diproses."]);
 
       setState(prev => ({
         ...prev,

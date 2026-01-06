@@ -7,12 +7,79 @@ interface FetchOptions {
   temperature?: number;
 }
 
-const SYSTEM_PROMPT = `Research assistant for claim extraction with verified sources.
+const SYSTEM_PROMPT = `Your task is to extract key phrases, main concepts, significant entities, and atomic factual claims from search results
+related to the provided book or topic.
 
-OUTPUT: Valid JSON only (no markdown/explanations).
-SOURCES: Prioritize Tier-1 news, academic journals, .gov/.edu/.org, industry reports.
-FALLBACK: Wikipedia is acceptable if primary sources are scarce. Avoid low-quality blogs/forums.
-QUALITY: Domain authority, specific details, credentials, peer-review.`;
+==============================
+EXTRACTION DOCTRINE & HARD CONSTRAINTS
+==============================
+
+1. GROUNDED (NON-NEGOTIABLE)
+- Every claim MUST originate explicitly from the provided search results.
+- DO NOT infer, extrapolate, synthesize, or generalize beyond the source text.
+- If a statement is not explicitly supported, DO NOT output it.
+
+2. SOURCE QUALITY
+- Prioritize Tier-1 sources: academic journals, university presses, reputable publishers,
+  .gov / .edu / .org domains, and established industry or research institutions.
+- Wikipedia is permitted ONLY as a fallback for high-level background when primary sources are unavailable.
+- Avoid blogs, forums, opinion pieces, or unverifiable aggregators.
+
+3. SOURCE DEFINITION (CRITICAL)
+- A "source" is defined by its PRIMARY DOMAIN (e.g., nytimes.com),
+  NOT by individual URLs or pages.
+- Multiple URLs from the same domain COUNT AS ONE SOURCE.
+
+4. DIVERSITY (HARD CONSTRAINT)
+- For EACH claim: all listed sources MUST come from DISTINCT DOMAINS.
+- Across the entire extraction:
+  - Maximum ONE claim per unique domain.
+  - Additional claims from the same domain are ONLY allowed if
+    corroborated by at least one independent domain.
+
+5. FAILURE MODE
+- If domain diversity cannot be satisfied:
+  - Output FEWER claims.
+  - DO NOT repeat or pad claims using the same domain.
+  - Prefer omission over violation.
+
+6. ATOMICITY
+- One claim = one single, precise, factual statement.
+- No compound, multi-part, or interpretive claims.
+
+7. CONTEXT BOUNDARY
+- The "context" field may ONLY provide brief descriptive background
+  that clarifies the claim.
+- Context MUST NOT introduce new facts or interpretations.
+
+8. CONFIDENCE SCORE
+- confidence_score (0.0–1.0) represents evidence strength,
+  based on source authority, specificity, and clarity.
+- It is NOT a probability of truth.
+
+9. VERIFICATION FLAG
+- is_unverified = true IF:
+  - source_count < 2 for a non-trivial claim, OR
+  - sources are medium/low credibility, OR
+  - corroboration is weak or indirect.
+
+==============================
+LANGUAGE & STYLE
+==============================
+- Use clear, professional Indonesian for all content fields (claims, context, topic_summary).
+- Use accurate and widely accepted technical terminology in English (e.g., "AI", "blockchain", "deep learning").
+- No speculative or narrative language.
+
+==============================
+CONFLICTING SOURCES
+==============================
+- If authoritative sources present conflicting factual claims,
+  represent EACH position as a separate atomic claim.
+- Each claim MUST have its own sources from distinct domains.
+- Clearly attribute the position to its source.
+- Do NOT resolve or synthesize the conflict.
+
+CRITICAL: Output ONLY valid JSON. No prose, no markdown.`;
 
 const buildUserPrompt = (query: string): string => {
   const today = new Date().toISOString().split('T')[0];
@@ -25,39 +92,66 @@ CRITERIA:
 - Specific, measurable, relevant
 - SOURCES: Prioritize Tier-1 news, academic, .gov/.edu/.org, industry reports.
 - FALLBACK: Wikipedia is allowed for general context or if other sources are unavailable.
-- DIVERSITY: Max 1-2 claims per domain
+- DIVERSITY: Max 1-2 claims per domain (strict enforcement)
 
 CATEGORIES: Empirical, Historical, Theoretical, Application, Trend
 
-JSON STRUCTURE:
+JSON STRUCTURE (STRICT — NO EXTRA FIELDS):
 {
-  "metadata": {"topic_summary": "3-4 sentences (Indonesian)", "total_claims": 0, "extraction_date": "${today}"},
-  "claims": [{
-    "id": "claim_001",
-    "claim": "Statement (Indonesian)",
-    "context": "Context (Indonesian)",
-    "sources": [{"url": "https://...", "title": "Title", "date": "YYYY-MM", "credibility": "high"}],
-    "category": "Empirical|Historical|Theoretical|Application|Trend",
-    "keywords": ["kw1", "kw2"]
-  }]
+  "metadata": {
+    "topic_summary": "2–3 sentence neutral summary in Indonesian",
+    "total_claims": 0,
+    "extraction_date": "${today}"
+  },
+  "key_phrases": ["phrase1", "phrase2"],
+  "main_concepts": ["concept1"],
+  "significant_entities": [
+    { "name": "Entity Name", "type": "Person|Organization|Book|Concept|Event" }
+  ],
+  "claims": [
+    {
+      "id": "claim_001",
+      "claim": "Single factual statement in Indonesian",
+      "context": "Brief descriptive context in Indonesian",
+      "sources": [
+        {
+          "title": "Source Title",
+          "url": "https://...",
+          "publisher": "Publisher Name",
+          "source_type": "Book|Journal|Web|Report",
+          "date": "YYYY-MM-DD",
+          "credibility": "high|medium|low"
+        }
+      ],
+      "confidence_score": 0.95,
+      "claim_type": "fact",
+      "category": "Empirical|Historical|Theoretical|Application|Trend",
+      "keywords": ["kw1", "kw2"],
+      "recency_note": "",
+      "source_count": 1,
+      "is_unverified": false
+    }
+  ],
+  "extraction_version": "2.1.0",
+  "prompt_hash": "v2_ind_strict_domain_diversity"
 }
 
 INSTRUCTIONS:
 1. Deep search, prioritize authoritative sources.
 2. Use Wikipedia only as a secondary or fallback source.
 3. Specific URLs (deep links), cross-validate
-3. SOURCE DIVERSITY: Different domains per claim (e.g., techcrunch.com, wired.com, mit.edu - NOT 3x techcrunch.com)
-4. LANGUAGE: Indonesian text + English technical terms (e.g., "AI" not "Kecerdasan Buatan", "Market Positioning" not "Pemosisian Pasar")
-5. Output raw JSON (no \`\`\`json)
+4. SOURCE DIVERSITY: Different domains per claim (e.g., techcrunch.com, wired.com, mit.edu - NOT 3x techcrunch.com)
+5. LANGUAGE: Indonesian text for claims/context/summary + English technical terms (e.g., "AI" not "Kecerdasan Buatan", "Market Positioning" not "Pemosisian Pasar")
+6. Output raw JSON (no \`\`\`json)
 
 EDGE CASES:
 - No sources: Empty claims + explanation in topic_summary
-- Conflicts: Multiple perspectives with attribution
+- Conflicts: Multiple perspectives with attribution (separate claims)
 - Outdated (>24mo): Add "recency_note"
 - Validation needed: 2-3+ corroborating sources
 
 EXAMPLE:
-{"metadata": {"topic_summary": "AI dalam healthcare tumbuh signifikan dengan adoption 45% di RS besar 2024. Meningkatkan diagnostic accuracy dan outcomes.", "total_claims": 1, "extraction_date": "${today}"}, "claims": [{"id": "claim_001", "claim": "AI diagnostic tools tingkatkan akurasi 94% vs konvensional", "context": "Stanford Medicine: peningkatan early detection kanker paru via deep learning", "sources": [{"url": "https://med.stanford.edu/news/ai-detection.html", "title": "AI Improves Detection", "date": "2024-03", "credibility": "high"}], "category": "Empirical", "keywords": ["AI", "diagnostic", "healthcare"]}]}`;
+{"metadata": {"topic_summary": "AI dalam healthcare tumbuh signifikan dengan adoption 45% di RS besar 2024. Meningkatkan diagnostic accuracy dan outcomes.", "total_claims": 1, "extraction_date": "${today}"}, "key_phrases": ["AI healthcare", "diagnostic accuracy"], "main_concepts": ["AI adoption in healthcare"], "significant_entities": [{"name": "Stanford Medicine", "type": "Organization"}], "claims": [{"id": "claim_001", "claim": "AI diagnostic tools tingkatkan akurasi 94% vs konvensional", "context": "Stanford Medicine: peningkatan early detection kanker paru via deep learning", "sources": [{"url": "https://med.stanford.edu/news/ai-detection.html", "title": "AI Improves Detection", "publisher": "Stanford Medicine", "source_type": "Web", "date": "2024-03", "credibility": "high"}], "confidence_score": 0.95, "claim_type": "fact", "category": "Empirical", "keywords": ["AI", "diagnostic", "healthcare"], "recency_note": "", "source_count": 1, "is_unverified": false}], "extraction_version": "2.1.0", "prompt_hash": "v2_ind_strict_domain_diversity"}`;
 };
 
 export const fetchOpenRouterResponse = async ({

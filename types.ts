@@ -1,12 +1,5 @@
-export interface Citation {
-  index: number;
-  url: string;
-  domain: string;
-}
-
 export interface ExtractedData {
   content: string;
-  citations: Citation[];
 }
 
 export interface Message {
@@ -41,6 +34,12 @@ export interface ClaimRow {
   category: string;
   context: string;
   sources: { url: string; domain: string; title?: string }[];
+  // New fields from upgraded schema
+  confidence_score?: number;
+  claim_type?: string;
+  is_unverified?: boolean;
+  recency_note?: string;
+  keywords?: string[];
 }
 
 export const AVAILABLE_MODELS = [
