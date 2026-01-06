@@ -154,43 +154,43 @@ export const ResultView: React.FC<ResultViewProps> = ({ data }) => {
   }
 
   return (
-    <div className="bg-[#0a0a0a] rounded-xl shadow-2xl border border-neutral-900 overflow-hidden">
+    <div className="bg-transparent rounded-2xl overflow-hidden">
       {/* Table View */}
       {jsonData && !showRawJson ? (
         <ClaimsTable data={normalizedData} />
       ) : (
-        <div className="p-4 bg-[#0a0a0a]">
+        <div className="p-4 bg-[#0a0a0a]/30">
           <JsonViewer data={jsonData || data.content} title="Extracted Data (JSON)" />
         </div>
       )}
 
       {/* Footer Actions */}
-      <div className="bg-[#050505] px-6 py-4 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex space-x-3">
+      <div className="bg-[#0a0a0a]/30 px-6 py-4 border-t border-neutral-900/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex space-x-2">
           <button
             onClick={copyToClipboard}
-            className="inline-flex items-center px-4 py-2 border border-neutral-800 shadow-sm text-xs font-bold uppercase tracking-wider rounded text-white bg-neutral-900 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition-colors"
+            className="inline-flex items-center px-3 py-2 text-xs font-medium rounded-lg text-neutral-400 bg-black/50 hover:bg-black hover:text-white border border-neutral-800/50 transition-colors"
           >
-            <Copy className="w-4 h-4 mr-2 text-blue-500" />
-            Copy Json
+            <Copy className="w-3.5 h-3.5 mr-1.5" />
+            Copy JSON
           </button>
           <button
             onClick={exportToCSV}
-            className="inline-flex items-center px-4 py-2 border border-neutral-800 shadow-sm text-xs font-bold uppercase tracking-wider rounded text-white bg-neutral-900 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition-colors"
+            className="inline-flex items-center px-3 py-2 text-xs font-medium rounded-lg text-neutral-400 bg-black/50 hover:bg-black hover:text-white border border-neutral-800/50 transition-colors"
           >
-            <FileText className="w-4 h-4 mr-2 text-blue-500" />
-            CSV
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            Export CSV
           </button>
           <button
             onClick={() => setShowRawJson(!showRawJson)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-xs font-bold uppercase tracking-wider rounded text-red-500 hover:text-red-400 bg-red-950/10 hover:bg-red-950/30 focus:outline-none transition-colors"
+            className="inline-flex items-center px-3 py-2 text-xs font-medium rounded-lg text-blue-500 hover:text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-colors"
           >
-            <Code className="w-4 h-4 mr-2" />
-            {showRawJson ? "Lihat Tabel" : "Raw Data"}
+            <Code className="w-3.5 h-3.5 mr-1.5" />
+            {showRawJson ? "Table View" : "Raw JSON"}
           </button>
         </div>
-        <div className="text-xs font-mono text-neutral-600 uppercase">
-          Status: <span className="text-blue-500">Completed</span>
+        <div className="text-xs font-mono text-neutral-600">
+          <span className="text-blue-500">●</span> Completed
         </div>
       </div>
     </div>

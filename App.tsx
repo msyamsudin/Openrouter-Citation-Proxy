@@ -161,44 +161,37 @@ export default function App() {
   return (
     <div className="min-h-screen bg-black text-white font-sans pb-12 selection:bg-red-600 selection:text-white">
       {/* Header */}
-      <header className="bg-black/90 backdrop-blur-md border-b border-neutral-900 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="bg-black/80 backdrop-blur-xl sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="text-blue-600">
-              <Radar className="w-8 h-8" />
+            <div className="text-blue-500">
+              <Radar className="w-6 h-6" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                OpenRouter <span className="text-blue-600">Proxy</span>
-              </h1>
-            </div>
-            <span className="hidden sm:block text-neutral-800 mx-2">|</span>
-            <span className="hidden sm:block text-sm text-neutral-400 font-medium">Claims + Context + Source</span>
+            <h1 className="text-lg font-light text-white tracking-tight">
+              OpenRouter <span className="text-blue-500 font-medium">Proxy</span>
+            </h1>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {isInitialLoading ? (
-              <div className="flex items-center space-x-1.5 px-3 py-1 bg-neutral-900/30 border border-neutral-800 rounded-full text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Checking...</span>
+              <div className="flex items-center space-x-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-500" />
               </div>
             ) : isBackendConfigured ? (
-              <div className="flex items-center space-x-1.5 px-3 py-1 bg-green-950/30 border border-green-900/50 rounded-full text-[10px] font-bold text-green-500 uppercase tracking-wider animate-fade-in">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                <span>Ready</span>
+              <div className="flex items-center space-x-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]"></div>
               </div>
             ) : (
-              <div className="flex items-center space-x-1.5 px-3 py-1 bg-red-950/30 border border-red-900/50 rounded-full text-[10px] font-bold text-red-500 uppercase tracking-wider animate-fade-in">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                <span>Not Ready</span>
+              <div className="flex items-center space-x-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"></div>
               </div>
             )}
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-900 rounded-full transition-all relative group"
+              className="p-1.5 text-neutral-500 hover:text-white transition-colors"
               title="API Settings"
             >
-              <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform" />
+              <Settings className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -206,66 +199,72 @@ export default function App() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-        {/* Search Card */}
-        <div className="bg-[#0a0a0a] rounded-xl border border-neutral-800 p-6 shadow-2xl">
-          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-center">
-            <label className="text-lg font-bold text-white whitespace-nowrap min-w-max">
-              Enter Topic:
-            </label>
-            <input
-              type="text"
-              value={state.query}
-              onChange={(e) => setState(prev => ({ ...prev, query: e.target.value }))}
-              placeholder="e.g. Sapiens: A Brief History of Humankind"
-              className="flex-1 w-full px-4 py-3 bg-black border border-neutral-800 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-white placeholder:text-neutral-600 transition-all shadow-inner outline-none"
-            />
+        {/* Search Form - Hidden when results are shown */}
+        {!state.result && (
+          <div className="bg-[#0a0a0a]/50 rounded-2xl p-8">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <input
+                type="text"
+                value={state.query}
+                onChange={(e) => setState(prev => ({ ...prev, query: e.target.value }))}
+                placeholder="Enter a topic to analyze..."
+                className="w-full px-5 py-4 bg-black/50 border border-neutral-800/50 rounded-xl focus:border-blue-500/50 focus:bg-black text-white placeholder:text-neutral-600 transition-all outline-none text-base"
+              />
 
-            <select
-              value={state.model}
-              onChange={(e) => setState(prev => ({ ...prev, model: e.target.value }))}
-              className="w-full md:w-auto max-w-[240px] px-3 py-3 bg-black border border-neutral-800 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 text-neutral-300 text-sm truncate outline-none"
-              aria-label="Select AI Model"
-            >
-              {AVAILABLE_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={state.model}
+                  onChange={(e) => setState(prev => ({ ...prev, model: e.target.value }))}
+                  className="flex-1 px-4 py-3 bg-black/50 border border-neutral-800/50 rounded-xl focus:border-blue-500/50 text-neutral-300 text-sm outline-none"
+                  aria-label="Select AI Model"
+                >
+                  {AVAILABLE_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
 
-            <button
-              type="submit"
-              disabled={state.isLoading || !state.query}
-              className="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-blue-900/20 transition-all whitespace-nowrap flex items-center justify-center uppercase tracking-wide text-sm"
-            >
-              {state.isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                "Generate"
-              )}
-            </button>
-          </form>
-        </div>
+                <button
+                  type="submit"
+                  disabled={state.isLoading || !state.query}
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-900 disabled:text-neutral-600 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all whitespace-nowrap flex items-center justify-center gap-2"
+                >
+                  {state.isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Processing</span>
+                    </>
+                  ) : (
+                    "Generate"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Error Display */}
         {state.error && (
-          <div className="p-4 bg-red-950/20 border border-red-900/50 rounded-lg flex items-start space-x-3 text-red-500 animate-fade-in">
-            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl flex items-start space-x-3 text-red-400 animate-fade-in">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="font-bold">Extraction Failed</h4>
-              <p className="text-sm opacity-90">{state.error}</p>
+              <p className="text-sm">{state.error}</p>
             </div>
           </div>
         )}
 
         {/* Results Section */}
         {state.result && (
-          <div className="animate-fade-in">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white pl-2 border-l-4 border-red-600">Generated Claims & Sources</h2>
+          <div className="animate-fade-in space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-light text-white">Claims</h2>
+              <button
+                onClick={() => setState(prev => ({ ...prev, result: null, query: '', error: null }))}
+                className="px-4 py-2 text-sm text-neutral-400 hover:text-white bg-neutral-900/50 hover:bg-neutral-900 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <span>New Search</span>
+              </button>
             </div>
             <ResultView data={state.result} />
           </div>
@@ -273,24 +272,20 @@ export default function App() {
 
         {/* Processing Log */}
         {(logs.length > 0 || state.isLoading) && (
-          <div className="bg-[#050505] rounded-lg border border-neutral-900 overflow-hidden shadow-inner">
-            <div className="bg-neutral-950 px-4 py-2 border-b border-neutral-900 flex justify-between items-center">
-              <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">System Logs</h3>
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 rounded-full bg-red-600"></div>
-                <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-              </div>
+          <div className="bg-[#0a0a0a]/30 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-neutral-900/50">
+              <h3 className="text-xs font-medium text-neutral-600 uppercase tracking-wider">System Logs</h3>
             </div>
-            <div className="p-4 space-y-2 font-mono text-sm">
+            <div className="p-5 space-y-2 font-mono text-xs">
               {logs.map((log, i) => (
-                <div key={i} className="flex items-start space-x-3 text-neutral-400">
-                  <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div key={i} className="flex items-start space-x-2 text-neutral-500">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-500/50 flex-shrink-0 mt-0.5" />
                   <span>{log}</span>
                 </div>
               ))}
               {state.isLoading && (
-                <div className="flex items-center space-x-3 text-blue-500 animate-pulse">
-                  <div className="w-4 h-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+                <div className="flex items-center space-x-2 text-blue-400 animate-pulse">
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
                   <span>Analyzing content and validating citations...</span>
                 </div>
               )}

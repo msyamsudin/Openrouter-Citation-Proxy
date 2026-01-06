@@ -89,21 +89,21 @@ export const ClaimsTable: React.FC<ClaimsTableProps> = ({ data }) => {
     }, []);
 
     return (
-        <div className="bg-[#0a0a0a] rounded-xl shadow-2xl border border-neutral-900 overflow-hidden flex flex-col max-h-[700px] w-full">
+        <div className="bg-transparent rounded-2xl overflow-hidden flex flex-col max-h-[700px] w-full">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between px-4 py-3 border-b border-neutral-900 bg-neutral-950/50 backdrop-blur-sm sticky top-0 z-20 gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between px-5 py-4 bg-[#0a0a0a]/30 backdrop-blur-sm sticky top-0 z-20 gap-3">
                 <div className="flex items-center space-x-2 flex-1">
-                    <Search className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                    <Search className="w-4 h-4 text-neutral-600 flex-shrink-0" />
                     <input
                         type="text"
-                        placeholder="Cari klaim, konteks, atau kategori..."
+                        placeholder="Search claims, context, or category..."
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
-                        className="bg-neutral-900 border border-neutral-800 rounded px-3 py-1.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:max-w-xs"
+                        className="bg-black/50 border border-neutral-800/50 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500/50 w-full sm:max-w-sm"
                     />
                 </div>
-                <div className="text-[10px] sm:text-xs text-neutral-500 font-mono text-center sm:text-right">
-                    {sortedData.length} / {data.length} klaim
+                <div className="text-xs text-neutral-600 font-mono">
+                    {sortedData.length} / {data.length} claims
                 </div>
             </div>
 
@@ -112,14 +112,14 @@ export const ClaimsTable: React.FC<ClaimsTableProps> = ({ data }) => {
                 {sortedData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="text-neutral-600 text-sm mb-2">
-                            {debouncedSearch.trim() ? 'Tidak ada hasil yang cocok dengan pencarian Anda' : 'Topik tidak ditemukan atau sumber data tidak mencukupi untuk mengekstrak klaim.'}
+                            {debouncedSearch.trim() ? 'No results match your search' : 'No claims found or insufficient data sources.'}
                         </div>
                         {debouncedSearch.trim() && (
                             <button
                                 onClick={() => setSearchInput('')}
                                 className="text-xs text-blue-500 hover:text-blue-400 underline"
                             >
-                                Hapus filter
+                                Clear filter
                             </button>
                         )}
                     </div>
