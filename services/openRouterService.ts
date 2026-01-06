@@ -255,6 +255,29 @@ export const fetchOpenRouterResponse = async ({
   }
 };
 
+/**
+ * Sanitizes JSON string by removing common syntax errors produced by LLMs
+ */
+const sanitizeJson = (jsonString: string): string => {
+  let sanitized = jsonString;
+
+  // Remove trailing commas before closing braces/brackets
+  // This is one of the most common LLM JSON errors
+  sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
+
+  // Remove single-line comments (// ...)
+  // Use negative lookbehind (?<!:) to avoid matching http:// or https://
+  sanitized = sanitized.replace(/(?<!:)\/\/[^\n]*/g, '');
+
+  // Remove multi-line comments (/* ... */)
+  sanitized = sanitized.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // Fix common escape sequence issues (optional, be careful with this)
+  // sanitized = sanitized.replace(/\\'/g, "'");
+
+  return sanitized;
+};
+
 // Helper function to parse JSON from response content
 export const parseClaimsFromResponse = (content: string): any => {
   try {
@@ -285,7 +308,15 @@ export const parseClaimsFromResponse = (content: string): any => {
       jsonToParse = cleanedContent.substring(firstBrace, lastBrace + 1);
     }
 
-    const parsed = JSON.parse(jsonToParse);
+    let parsed: any;
+    try {
+      // 1. Try standard parse first (Best for valid JSON)
+      parsed = JSON.parse(jsonToParse);
+    } catch (e) {
+      // 2. If that fails, apply sanitization and try again
+      const sanitized = sanitizeJson(jsonToParse);
+      parsed = JSON.parse(sanitized);
+    }
 
     // Validate parsed structure
     if (!parsed.metadata || !parsed.claims) {
@@ -304,6 +335,9 @@ export const parseClaimsFromResponse = (content: string): any => {
     return parsed;
   } catch (error) {
     if (error instanceof SyntaxError) {
+      // Log the problematic content for debugging
+      console.error('JSON Parsing Failed. Raw content:', content);
+      console.error('Attempted to parse:', content.substring(0, 500));
       throw new Error(`Gagal mengurai format data (JSON Syntax Error). Barangkali model AI memberikan format yang tidak valid.`);
     }
     if (error instanceof Error) {
